@@ -16,6 +16,7 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.OAuthServerSettings
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.oauth
+import io.ktor.server.plugins.doublereceive.DoubleReceive
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
@@ -47,12 +48,10 @@ class ApplicationTest {
                     client = HttpClient(Apache)
                 }
             }
+            install(DoubleReceive)
 
             routing {
                 route("/") {
-                    get {
-                        call.respond("GET /")
-                    }
                     post {
                         val contentType = call.request.contentType()
                         val payload = call.receiveText()
@@ -61,9 +60,6 @@ class ApplicationTest {
                 }
                 route("/oauth") {
                     authenticate("auth-oauth-dummy", optional = true) {
-                        get {
-                            call.respond("GET /oauth")
-                        }
                         post {
                             val contentType = call.request.contentType()
                             try {
@@ -76,34 +72,6 @@ class ApplicationTest {
                     }
                 }
             }
-        }
-
-        // Works
-        client.get("/").apply {
-            assertEquals(HttpStatusCode.OK, status)
-            assertEquals("GET /", bodyAsText())
-        }
-
-        // Works
-        client.get("/oauth").apply {
-            assertEquals(HttpStatusCode.OK, status)
-            assertEquals("GET /oauth", bodyAsText())
-        }
-
-        // Works
-        client.post("/") {
-            setBody(TextContent("foo", ContentType.Text.Plain))
-        }.apply {
-            assertEquals(HttpStatusCode.OK, status)
-            assertEquals("POST / - text/plain - foo", bodyAsText())
-        }
-
-        // Works
-        client.post("/oauth") {
-            setBody(TextContent("foo", ContentType.Text.Plain))
-        }.apply {
-            assertEquals(HttpStatusCode.OK, status)
-            assertEquals("POST /oauth - text/plain - foo", bodyAsText())
         }
 
         // Works
